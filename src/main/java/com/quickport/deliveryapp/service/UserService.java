@@ -26,7 +26,7 @@ public class UserService {
         if(userRepository.findByEmail(request.getEmail()).isPresent())
             throw new RuntimeException("Email already registered");
 
-        Role customerRole = roleRepository.findByRole(Role.RoleType.CUSTOMER)
+        Role customerRole = roleRepository.findByRole(request.getRole())
                 .orElseThrow(() -> new RuntimeException("Role not found"));
 
         // Create a new user record

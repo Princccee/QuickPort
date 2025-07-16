@@ -1,5 +1,6 @@
 package com.quickport.deliveryapp.controller;
 
+import com.quickport.deliveryapp.dto.LoginRequest;
 import com.quickport.deliveryapp.dto.SignupRequest;
 import com.quickport.deliveryapp.entity.User;
 import com.quickport.deliveryapp.service.UserService;
@@ -25,8 +26,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public String login(@RequestBody String email, String password){
-        String response = userService.loginUser(email, password);
+    public String login(@RequestBody LoginRequest request){
+        String response = userService.loginUser(request.getEmail(), request.getPassword());
         return "JWT token: " + response;
     }
 }
