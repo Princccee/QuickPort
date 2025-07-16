@@ -22,8 +22,8 @@ public class Vehicle {
     private Double maxWeight;
     private String model;
 
-    @ManyToOne
-    @JoinColumn(name = "owner_id")
-    private User owner;
+    @OneToOne
+    @JoinColumn(name = "partner_id")
+    private DeliveryPartner partner;
 
 }
