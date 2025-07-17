@@ -146,4 +146,20 @@ public class PartnerService {
                 .collect(Collectors.toList());
     }
 
+    public void acceptDelivery(Long partenerId, Long deliveryId){
+        DeliveryRequest delivery = deliveryRequestRepository.findById(deliveryId)
+                .orElseThrow(()-> new RuntimeException("Delivery delivery not found."));
+
+        if(delivery.getStatus() != DeliveryStatus.PENDING)
+            throw new RuntimeException("Delivery already accepted or completed");
+
+        User partner = userRepository.findById(partenerId)
+                .orElseThrow(() -> new RuntimeException("Delivery partner doesn't exists"));
+
+        delivery.setStatus(DeliveryStatus.ASSIGNED);
+        delivery.setDeliveryPartner(partner);
+
+        deliveryRequestRepository.save(delivery);
+    }
+
 }
