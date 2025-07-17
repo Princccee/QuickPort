@@ -51,4 +51,11 @@ public class PartnerController {
         partnerService.acceptDelivery(partnerId, deliveryId);
         return ResponseEntity.ok("Delivery accepted");
     }
+
+    @PostMapping("/{partnerId}/assign/{deliveryId}")
+    public ResponseEntity<?> assignDelivery(@PathVariable Long partnerId, @PathVariable Long deliveryId){
+
+        partnerService.assignDelivery(partnerId, deliveryId);
+        return ResponseEntity.ok("Delivery assigned successfully");
+    }
 }

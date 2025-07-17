@@ -148,7 +148,7 @@ public class PartnerService {
 
     public void acceptDelivery(Long partenerId, Long deliveryId){
         DeliveryRequest delivery = deliveryRequestRepository.findById(deliveryId)
-                .orElseThrow(()-> new RuntimeException("Delivery delivery not found."));
+                .orElseThrow(()-> new RuntimeException("Delivery not found."));
 
         if(delivery.getStatus() != DeliveryStatus.PENDING)
             throw new RuntimeException("Delivery already accepted or completed");
@@ -160,6 +160,23 @@ public class PartnerService {
         delivery.setDeliveryPartner(partner);
 
         deliveryRequestRepository.save(delivery);
+    }
+
+    public void assignDelivery(Long partnerId, Long deliveryId){
+        DeliveryRequest delivery = deliveryRequestRepository.findById(deliveryId)
+                .orElseThrow(()-> new RuntimeException("Delivery not found"));
+
+        User partner = userRepository.findById(delivery.getDeliveryPartner().getId())
+                .orElseThrow(() -> new RuntimeException("Delivery partner not allocated yet"));
+
+        if(delivery.getStatus() != DeliveryStatus.ASSIGNED)
+            throw new RuntimeException("Delivery not yet assigned");
+
+
+        delivery.setStatus(DeliveryStatus.IN_TRANSIT);
+
+        deliveryRequestRepository.save(delivery);
+
     }
 
 }
