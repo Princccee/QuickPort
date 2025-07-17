@@ -1,21 +1,13 @@
 package com.quickport.deliveryapp.service;
 
-import com.quickport.deliveryapp.dto.PartnerLoginRequest;
-import com.quickport.deliveryapp.dto.PartnerLoginResponse;
-import com.quickport.deliveryapp.dto.PartnerRegResponse;
-import com.quickport.deliveryapp.dto.PartnerRegistrationRequest;
-import com.quickport.deliveryapp.entity.DeliveryPartner;
-import com.quickport.deliveryapp.entity.Role;
-import com.quickport.deliveryapp.entity.User;
-import com.quickport.deliveryapp.entity.Vehicle;
-import com.quickport.deliveryapp.repository.DeliveryPartnerRepository;
-import com.quickport.deliveryapp.repository.RoleRepository;
-import com.quickport.deliveryapp.repository.UserRepository;
-import com.quickport.deliveryapp.repository.VehicleRepository;
+import com.quickport.deliveryapp.dto.*;
+import com.quickport.deliveryapp.entity.*;
+import com.quickport.deliveryapp.repository.*;
 import com.quickport.deliveryapp.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.Collections;
 import java.util.Optional;
@@ -26,8 +18,13 @@ public class PartnerService {
 
     @Autowired DeliveryPartnerRepository deliveryPartnerRepository;
     @Autowired UserRepository userRepository;
+
     @Autowired
     VehicleRepository vehicleRepository;
+
+    @Autowired
+    LocationRepository locationRepository;
+
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private RoleRepository roleRepository;
     @Autowired private JwtUtil jwtUtil;
@@ -100,5 +97,19 @@ public class PartnerService {
                     .build();
         }
         else throw new RuntimeException("Invalid password");
+    }
+
+    public void updateLocation(Long partnerId, LocationUpdateRequest request){
+        DeliveryPartner partner = deliveryPartnerRepository.findById(partnerId)
+                .orElseThrow(() -> new RuntimeException("Partner doesn't exist"));
+
+        PartnerLocation location = locationRepository.findByPartnerId(partnerId)
+                .orElse(new PartnerLocation());
+
+        location.setPartner(partner);
+        location.setLatitude(request.getLatitude());
+        location.setLongitude(request.getLongitude());
+
+        locationRepository.save(location);
     }
 }
