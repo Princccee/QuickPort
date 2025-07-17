@@ -7,11 +7,11 @@ import com.quickport.deliveryapp.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import java.util.Collections;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class PartnerService {
@@ -27,6 +27,8 @@ public class PartnerService {
 
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private RoleRepository roleRepository;
+//    @Autowired private LocationRepository locationRepository;
+    @Autowired private DeliveryRequestRepository deliveryRequestRepository;
     @Autowired private JwtUtil jwtUtil;
 
     public PartnerRegResponse registerPartner(PartnerRegistrationRequest request){
@@ -112,4 +114,36 @@ public class PartnerService {
 
         locationRepository.save(location);
     }
+
+    public List<DeliveryResponse> availableRequests(Long partnerId) {
+        // Check if the partner exists
+        if (!deliveryPartnerRepository.findById(partnerId).isPresent()) {
+            throw new RuntimeException("Partner doesn't exist");
+        }
+
+        // Get the current location of the partner
+        PartnerLocation currLocation = locationRepository.findByPartnerId(partnerId)
+                .orElseThrow(() -> new RuntimeException("Please update your location."));
+
+        // TODO: Filter requests within 5 km using currLocation
+
+        // Fetch all pending delivery requests and map them to DeliveryResponse using builder
+        return deliveryRequestRepository.findByStatus(DeliveryStatus.PENDING)
+                .stream()
+                .map(req -> DeliveryResponse.builder()
+                        .fare(req.getFare())
+                        .packageDescription(req.getPackageDescription())
+                        .status(String.valueOf(req.getStatus()))
+                        .pickupTime(req.getPickupTime())
+                        .pickupStreet(req.getPickupAddress().getStreet())
+                        .pickupCity(req.getPickupAddress().getCity())
+                        .dropStreet(req.getDropAddress().getStreet())
+                        .dropCity(req.getDropAddress().getCity())
+                        .customerName(req.getCustomer().getFullName())
+                        .customerPhone(req.getCustomer().getPhone())
+                        .build()
+                )
+                .collect(Collectors.toList());
+    }
+
 }
