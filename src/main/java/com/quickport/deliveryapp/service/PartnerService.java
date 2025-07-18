@@ -166,16 +166,39 @@ public class PartnerService {
         DeliveryRequest delivery = deliveryRequestRepository.findById(deliveryId)
                 .orElseThrow(()-> new RuntimeException("Delivery not found"));
 
-        User partner = userRepository.findById(delivery.getDeliveryPartner().getId())
+        DeliveryPartner partner = deliveryPartnerRepository.findById(delivery.getDeliveryPartner().getId())
                 .orElseThrow(() -> new RuntimeException("Delivery partner not allocated yet"));
 
         if(delivery.getStatus() != DeliveryStatus.ASSIGNED)
             throw new RuntimeException("Delivery not yet assigned");
 
-
+        // Update the package status
         delivery.setStatus(DeliveryStatus.IN_TRANSIT);
-
         deliveryRequestRepository.save(delivery);
+
+        // Update the partner availability status:
+        partner.setAvailabilityStatus(DeliveryPartner.AvailabilityStatus.ON_DELIVERY);
+        deliveryPartnerRepository.save(partner);
+
+    }
+
+    public void completeDelivery(Long deliveryId){
+        DeliveryRequest delivery = deliveryRequestRepository.findById(deliveryId)
+                .orElseThrow(() -> new RuntimeException("Delivery order doesn't exists"));
+
+        Long partnerId = delivery.getDeliveryPartner().getId();
+
+        // Update the delivery status
+        delivery.setStatus(DeliveryStatus.DELIVERED);
+        deliveryRequestRepository.save(delivery);
+
+        // Update the partner availability:
+        DeliveryPartner partner = deliveryPartnerRepository.findById(partnerId)
+                .orElseThrow(() -> new RuntimeException("Partner doesn't exists"));
+
+        partner.setAvailabilityStatus(DeliveryPartner.AvailabilityStatus.AVIALABLE);
+        deliveryPartnerRepository.save(partner);
+
 
     }
 
