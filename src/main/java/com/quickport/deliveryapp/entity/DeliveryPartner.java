@@ -38,6 +38,8 @@ public class DeliveryPartner {
     @OneToOne(mappedBy = "partner", cascade = CascadeType.ALL)
     private PartnerLocation location;
 
+    private String fcmToken;
+
     public enum AvailabilityStatus{
         AVIALABLE,
         OFFLINE,

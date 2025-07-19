@@ -2,13 +2,12 @@ package com.quickport.deliveryapp.service;
 
 import com.quickport.deliveryapp.dto.DeliveryRequestDTO;
 import com.quickport.deliveryapp.dto.DeliveryResponse;
-import com.quickport.deliveryapp.entity.Address;
-import com.quickport.deliveryapp.entity.DeliveryRequest;
-import com.quickport.deliveryapp.entity.DeliveryStatus;
-import com.quickport.deliveryapp.entity.User;
+import com.quickport.deliveryapp.entity.*;
 import com.quickport.deliveryapp.repository.AddressRepository;
+import com.quickport.deliveryapp.repository.DeliveryPartnerRepository;
 import com.quickport.deliveryapp.repository.DeliveryRequestRepository;
 import com.quickport.deliveryapp.repository.UserRepository;
+import com.quickport.deliveryapp.util.DeliveryOrderUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,31 +20,89 @@ import java.util.stream.Collectors;
 public class DeliveryRequestService {
 
     @Autowired private DeliveryRequestRepository deliveryRequestRepository;
-    @Autowired private AddressRepository addressRepository;
-    @Autowired private UserRepository userRepository;
+
+    @Autowired
+    private AddressRepository addressRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private GeoLocationService geoLocationService;
+
+    @Autowired
+    private DeliveryOrderUtils orderUtils;
+
+    @Autowired
+    private DeliveryPartnerRepository deliveryPartnerRepository;
+
+    @Autowired
+    private FCMService fcmService;
 
     // Create a new delivery order
     public DeliveryResponse createDeliveryRequest(DeliveryRequestDTO request, Long customerId){
 
+        // ------------------------------------------------------------------
         // get the pickup address
         Address pickup = addressRepository.findById(request.getPickupAddressId())
                 .orElseThrow(() -> new RuntimeException("Pickup address not found"));
+
+        // Get the pickup coordinates
+        double[] pickupCoordinate = geoLocationService.getLatLongFromAddress(pickup);
 
         // get the drop address
         Address drop = addressRepository.findById(request.getDropAddressId())
                 .orElseThrow(() -> new RuntimeException("Drop address not found"));
 
+        // Get the drop coordinates
+        double[] dropCoordinate = geoLocationService.getLatLongFromAddress(drop);
+
+        // ------------------------------------------------------------------
+        //get the distance between pickup and drop location in KMs:
+        double totalDistance = geoLocationService.getRealDistanceInKm(pickupCoordinate, dropCoordinate);
+
+        // Now compute the total delivery cost:
+        double cost = orderUtils.computeDeliveryCost(totalDistance);
+
+        // ------------------------------------------------------------------
         // Find the customer
         User customer = userRepository.findById(customerId)
                 .orElseThrow(()-> new RuntimeException("Customer not found"));
 
-        //Compute the fare
-        double fare = 50 + 10 * request.getPackageWeight();
+        // ------------------------------------------------------------------
+        // Notify the nearby drivers in 5km radius
+        double RADIUS_KM = 5.0;
 
+        List<DeliveryPartner> nearbyPartners = deliveryPartnerRepository.findAll().stream()
+                .filter(partner -> partner.getAvailabilityStatus() == DeliveryPartner.AvailabilityStatus.AVIALABLE)
+                .filter(partner -> partner.getLocation() != null)
+                .filter(partner -> {
+                    double[] destination = {
+                            partner.getLocation().getLatitude(),
+                            partner.getLocation().getLongitude()
+                    };
+                    double distance = geoLocationService.getRealDistanceInKm(pickupCoordinate, destination);
+                    return distance <= RADIUS_KM;
+                })
+                .toList();
+
+        // Use FCMS to notify the nearby delivery partners:
+        for(DeliveryPartner partner : nearbyPartners){
+            if(partner.getFcmToken() != null){
+                fcmService.sendNotification(
+                        partner.getFcmToken(),
+                        "New Ride Request",
+                        "Pickup: " + geoLocationService.buildFullAddress(pickup) +
+                                ", Drop: " + geoLocationService.buildFullAddress(drop)
+                );
+            }
+        }
+
+        // ------------------------------------------------------------------
         // Create a fresh delivery request
         DeliveryRequest deliveryRequest = DeliveryRequest.builder()
                 .packageDescription(request.getPackageDescription())
-                .fare(fare)
+                .fare(cost)
                 .status(DeliveryStatus.PENDING)
                 .pickupTime(LocalDateTime.now().plusHours(1))
                 .createdAt(LocalDateTime.now())
