@@ -25,6 +25,7 @@ public class User {
 
     private String password;
 
+    @Column(unique = true, nullable = false)
     private String phone;
 
     private Boolean isVerified;
@@ -34,6 +35,9 @@ public class User {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles;
+
+//    @Enumerated(EnumType.STRING)
+//    private Role role;
 
     // One user can have multiple addresses
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)

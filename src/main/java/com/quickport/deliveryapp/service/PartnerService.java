@@ -7,11 +7,8 @@ import com.quickport.deliveryapp.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class PartnerService {
@@ -24,6 +21,9 @@ public class PartnerService {
 
     @Autowired
     LocationRepository locationRepository;
+
+    @Autowired
+    GeoLocationService geoLocationService;
 
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private RoleRepository roleRepository;
@@ -75,7 +75,7 @@ public class PartnerService {
         deliveryPartnerRepository.save(partner);
 
         //Create the API response:
-        PartnerRegResponse response = PartnerRegResponse.builder()
+        return PartnerRegResponse.builder()
                 .name(user.getFullName())
                 .email(user.getEmail())
                 .phone(user.getPhone())
@@ -83,15 +83,14 @@ public class PartnerService {
                 .aadharNumber(partner.getAadhaarNumber())
                 .vehicleRegNumber(vehicle.getRegistrationNumber())
                 .build();
-
-        return response;
     }
 
     public PartnerLoginResponse login(PartnerLoginRequest request){
-
+        // Authenticate the user
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User doesn't exist"));
 
+        // verify the entered password
         if(passwordEncoder.matches(request.getPassword(), user.getPassword())){
             return PartnerLoginResponse.builder()
                     .message("Login successful")
@@ -105,10 +104,13 @@ public class PartnerService {
         DeliveryPartner partner = deliveryPartnerRepository.findById(partnerId)
                 .orElseThrow(() -> new RuntimeException("Partner doesn't exist"));
 
+        // get the current location of the delivery guy
         PartnerLocation location = locationRepository.findByPartnerId(partnerId)
                 .orElse(new PartnerLocation());
 
         location.setPartner(partner);
+
+        // Update the location coordinates
         location.setLatitude(request.getLatitude());
         location.setLongitude(request.getLongitude());
 
@@ -117,33 +119,54 @@ public class PartnerService {
 
     public List<DeliveryResponse> availableRequests(Long partnerId) {
         // Check if the partner exists
-        if (!deliveryPartnerRepository.findById(partnerId).isPresent()) {
+        if (!deliveryPartnerRepository.findById(partnerId).isPresent())
             throw new RuntimeException("Partner doesn't exist");
-        }
 
         // Get the current location of the partner
         PartnerLocation currLocation = locationRepository.findByPartnerId(partnerId)
                 .orElseThrow(() -> new RuntimeException("Please update your location."));
 
         // TODO: Filter requests within 5 km using currLocation
+        double RADIUS_KM = 5;
 
-        // Fetch all pending delivery requests and map them to DeliveryResponse using builder
-        return deliveryRequestRepository.findByStatus(DeliveryStatus.PENDING)
-                .stream()
-                .map(req -> DeliveryResponse.builder()
-                        .fare(req.getFare())
-                        .packageDescription(req.getPackageDescription())
-                        .status(String.valueOf(req.getStatus()))
-                        .pickupTime(req.getPickupTime())
-                        .pickupStreet(req.getPickupAddress().getStreet())
-                        .pickupCity(req.getPickupAddress().getCity())
-                        .dropStreet(req.getDropAddress().getStreet())
-                        .dropCity(req.getDropAddress().getCity())
-                        .customerName(req.getCustomer().getFullName())
-                        .customerPhone(req.getCustomer().getPhone())
-                        .build()
-                )
-                .collect(Collectors.toList());
+        List<DeliveryRequest> Requests = deliveryRequestRepository.findAll().stream()
+                .filter(r -> r.getStatus() == DeliveryStatus.PENDING)
+                .filter(r -> {
+                    // Package pickup coordinate
+                    double[] pickup = {
+                            r.getPickupAddress().getLatitude(),
+                            r.getPickupAddress().getLongitude()
+                    };
+
+                    // Agent current coordinate
+                    double[] partnerLocation = new double[]{
+                            currLocation.getLatitude(),
+                            currLocation.getLongitude()
+                    };
+
+                    // Compute the distance
+                    double distance = geoLocationService.getRealDistanceInKm(pickup, partnerLocation);
+                    return distance <= RADIUS_KM;
+                })
+                .toList();
+
+        List<DeliveryResponse> availableRequests = new ArrayList<>();
+        for(DeliveryRequest d : Requests){
+            DeliveryResponse response = DeliveryResponse.builder()
+                    .packageDescription(d.getPackageDescription())
+                    .fare(d.getFare())
+                    .pickupTime(d.getPickupTime())
+                    .pickupStreet(d.getPickupAddress().getStreet())
+                    .pickupCity(d.getPickupAddress().getCity())
+                    .dropStreet(d.getDropAddress().getStreet())
+                    .dropCity(d.getDropAddress().getCity())
+                    .customerName(d.getCustomer().getFullName())
+                    .customerPhone(d.getCustomer().getPhone())
+                    .build();
+            availableRequests.add(response);
+        }
+
+        return availableRequests;
     }
 
     public void acceptDelivery(Long partenerId, Long deliveryId){
@@ -186,6 +209,9 @@ public class PartnerService {
         DeliveryRequest delivery = deliveryRequestRepository.findById(deliveryId)
                 .orElseThrow(() -> new RuntimeException("Delivery order doesn't exists"));
 
+        if(delivery.getStatus() == DeliveryStatus.DELIVERED)
+            throw new RuntimeException("Package Already delivered");
+
         Long partnerId = delivery.getDeliveryPartner().getId();
 
         // Update the delivery status
@@ -198,7 +224,6 @@ public class PartnerService {
 
         partner.setAvailabilityStatus(DeliveryPartner.AvailabilityStatus.AVIALABLE);
         deliveryPartnerRepository.save(partner);
-
 
     }
 
