@@ -35,9 +35,6 @@ public class PartnerService {
         if(userRepository.existsByEmail(request.getEmail()))
             throw new RuntimeException("Partner with this email already exists");
 
-        // Get the partner role;
-        Role partnerRole = roleRepository.findByRole(Role.RoleType.PARTNER)
-                .orElseThrow(() -> new RuntimeException("Role not found"));
 
         //Create a user with the given name and email:
         User user = User.builder()
@@ -46,7 +43,7 @@ public class PartnerService {
                 .phone(request.getPhone())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .isVerified(false)
-                .roles(Collections.singleton(partnerRole))
+                .role(Roles.PARTNER)
                 .build();
 
         // Save the user
@@ -67,6 +64,7 @@ public class PartnerService {
                 .user(user)
                 .licenceNumber(request.getLicenseNumber())
                 .aadhaarNumber(request.getAadharNumber())
+                .availabilityStatus(DeliveryPartner.AvailabilityStatus.AVIALABLE)
                 .isVerified(false)
                 .vehicle(vehicle)
                 .build();

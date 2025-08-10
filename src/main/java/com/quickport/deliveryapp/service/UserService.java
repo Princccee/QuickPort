@@ -5,6 +5,7 @@ import com.quickport.deliveryapp.dto.LoginResponse;
 import com.quickport.deliveryapp.dto.SignupRequest;
 import com.quickport.deliveryapp.entity.Address;
 import com.quickport.deliveryapp.entity.Role;
+import com.quickport.deliveryapp.entity.Roles;
 import com.quickport.deliveryapp.entity.User;
 import com.quickport.deliveryapp.repository.AddressRepository;
 import com.quickport.deliveryapp.repository.RoleRepository;
@@ -24,6 +25,7 @@ public class UserService {
     @Autowired private AddressRepository addressRepository;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private JwtUtil jwtUtil;
+    @Autowired private GeoLocationService geoLocationService;
 
 
     public User registerCustomer(SignupRequest request){
@@ -31,16 +33,13 @@ public class UserService {
         if(userRepository.findByEmail(request.getEmail()).isPresent())
             throw new RuntimeException("Email already registered");
 
-        Role role = roleRepository.findByRole(Role.RoleType.CUSTOMER)
-                .orElseThrow(() -> new RuntimeException("Role not found"));
-
         // Create a new user record
         User user = User.builder()
                 .fullName(request.getFullName()) // full name
                 .email(request.getEmail()) // user email
                 .phone(request.getPhone()) // user's phone number
                 .password(passwordEncoder.encode(request.getPassword())) // encode the user's password
-                .roles(Collections.singleton(role)) // role as : CUSTOMER
+                .role(Roles.CUSTOMER) // role as : CUSTOMER
                 .isVerified(false)
                 .build();
 
@@ -75,8 +74,13 @@ public class UserService {
                 .postalCode(request.getPostalCode())
                 .build();
 
+//        double[] coordinates = geoLocationService.getLatLongFromAddress(address);
+
+        //Add the latitude and longitude:
+//        address.setLatitude(coordinates[0]);
+//        address.setLongitude(coordinates[1]);
+
         return addressRepository.save(address);
     }
-
 
 }
