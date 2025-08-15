@@ -1,42 +1,51 @@
 package com.quickport.deliveryapp.service;
 
-import com.quickport.deliveryapp.entity.DeliveryRequest;
-import com.quickport.deliveryapp.entity.Payment;
-import com.quickport.deliveryapp.entity.PaymentStatus;
-import com.quickport.deliveryapp.repository.DeliveryRequestRepository;
-import com.quickport.deliveryapp.repository.PaymentRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.razorpay.Order;
+import com.razorpay.Utils;
+import com.razorpay.RazorpayClient;
+import jakarta.annotation.PostConstruct;
+import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 public class PaymentService {
 
-    @Autowired private PaymentRepository paymentRepository;
-    @Autowired private DeliveryRequestRepository deliveryRequestRepository;
+    @Value("${razorpay.key.id}")
+    private String razorpayKeyId;
 
-    public Payment createPayment(Long deliveryRequestId, Double amount) {
-        DeliveryRequest deliveryRequest = deliveryRequestRepository.findById(deliveryRequestId)
-                .orElseThrow(() -> new RuntimeException("DeliveryRequest not found"));
+    @Value("${razorpay.key.secret}")
+    private String razorpayKeySecret;
 
-        Payment payment = Payment.builder()
-                .delivery(deliveryRequest)
-                .amount(amount)
-                .paymentTime(LocalDateTime.now())
-                .status(PaymentStatus.INITIATED) // assume immediate success for now
-                .build();
+    private RazorpayClient client;
 
-        return paymentRepository.save(payment);
+    @PostConstruct
+    public void init() throws Exception {
+//        this.client = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
+        this.client = new RazorpayClient("rzp_test_R5gX1mDzVZinAS", "xWOvBeWjG5J9zEGUp8qGSxhw");
     }
 
-//    public List<Payment> getPaymentsByPartner(Long partnerId) {
-//        return paymentRepository.findByDeliveryPartnerId(partnerId);
+//    // Dependency injection via constructor
+//    public PaymentService(@Value("${razorpay.key.id}") String keyId,
+//                          @Value("${razorpay.key.secret}") String keySecret) throws Exception {
+//        this.client = new RazorpayClient(keyId, keySecret);
 //    }
-//
-//    public Payment getPaymentById(Long id) {
-//        return paymentRepository.findById(id)
-//                .orElseThrow(() -> new RuntimeException("Payment not found"));
-//    }
+
+    public Order createOrder(int amount, String currency, String receipt) throws Exception {
+        JSONObject orderRequest = new JSONObject();
+        orderRequest.put("amount", amount * 100); // Razorpay expects paise
+        orderRequest.put("currency", currency);
+        orderRequest.put("receipt", receipt);
+
+        return client.orders.create(orderRequest);
+    }
+
+    public boolean verifyPayment(String orderId, String paymentId, String signature) {
+        try {
+            String data = orderId + "|" + paymentId;
+            return Utils.verifySignature(data, signature, razorpayKeySecret);
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

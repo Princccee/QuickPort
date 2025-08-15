@@ -8,6 +8,7 @@ import com.quickport.deliveryapp.repository.DeliveryPartnerRepository;
 import com.quickport.deliveryapp.repository.DeliveryRequestRepository;
 import com.quickport.deliveryapp.repository.UserRepository;
 import com.quickport.deliveryapp.util.DeliveryOrderUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +18,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class DeliveryRequestService {
 
     @Autowired private DeliveryRequestRepository deliveryRequestRepository;
@@ -97,6 +99,7 @@ public class DeliveryRequestService {
                 );
             }
         }
+        log.info("Notified the nearby drivers");
 
         // ------------------------------------------------------------------
         // Create a fresh delivery request
@@ -113,6 +116,8 @@ public class DeliveryRequestService {
 
         // Save the new record into the DB
         deliveryRequest = deliveryRequestRepository.save(deliveryRequest);
+
+        log.info("Delivery request created {}", deliveryRequest);
 
         return DeliveryResponse.builder()
                 .deliveryId(deliveryRequest.getId())
@@ -131,6 +136,7 @@ public class DeliveryRequestService {
 
     // See all delivery order created by a customer
     public List<DeliveryResponse> getDeliveriesForCustomer(Long customerId) {
+        log.info("Past orders fetched successful");
         return deliveryRequestRepository.findByCustomerId(customerId)
                 .stream()
                 .map(this::mapToResponse)
@@ -139,6 +145,7 @@ public class DeliveryRequestService {
 
     // Get status of a delivery order
     public Optional<DeliveryResponse> getStatus(Long deliveryId) {
+        log.info("Delivery status fetched successfully.");
         return deliveryRequestRepository.findById(deliveryId)
                 .map(this::mapToResponse);
     }

@@ -4,6 +4,7 @@ import com.quickport.deliveryapp.dto.*;
 import com.quickport.deliveryapp.entity.*;
 import com.quickport.deliveryapp.repository.*;
 import com.quickport.deliveryapp.security.JwtUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 @Service
+@Slf4j
 public class PartnerService {
 
     @Autowired DeliveryPartnerRepository deliveryPartnerRepository;
@@ -32,8 +34,10 @@ public class PartnerService {
     @Autowired private JwtUtil jwtUtil;
 
     public PartnerRegResponse registerPartner(PartnerRegistrationRequest request){
-        if(userRepository.existsByEmail(request.getEmail()))
+        if(userRepository.existsByEmail(request.getEmail())){
+            log.warn("Partner with this email doesn't exist");
             throw new RuntimeException("Partner with this email already exists");
+        }
 
 
         //Create a user with the given name and email:
@@ -46,6 +50,8 @@ public class PartnerService {
                 .role(Roles.PARTNER)
                 .build();
 
+//        log.info("Driver created : {}", user);
+
         // Save the user
 //        userRepository.save(user);
 
@@ -55,6 +61,8 @@ public class PartnerService {
                 .registrationNumber(request.getVehicleRegNumber())
                 .maxWeight(request.getMaxWeight())
                 .build();
+
+//        log.info("Partner vehicle registration: {}", vehicle);
 
         // Save the vehicle entity
 //        vehicleRepository.save(vehicle);
@@ -68,6 +76,8 @@ public class PartnerService {
                 .isVerified(false)
                 .vehicle(vehicle)
                 .build();
+
+        log.info("Partner registered: {}", partner);
 
         // Save the entity
         deliveryPartnerRepository.save(partner);
@@ -87,15 +97,21 @@ public class PartnerService {
         // Authenticate the user
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User doesn't exist"));
+        if(user == null)
+            log.warn("Partner doesn't exists");
 
         // verify the entered password
         if(passwordEncoder.matches(request.getPassword(), user.getPassword())){
+            log.info("Password matched, partner login successful.");
             return PartnerLoginResponse.builder()
                     .message("Login successful")
                     .token(jwtUtil.generateToken(request.getEmail()))
                     .build();
         }
-        else throw new RuntimeException("Invalid password");
+        else{
+            log.warn("Invalid password");
+            throw new RuntimeException("Invalid password");
+        }
     }
 
     public void updateLocation(Long partnerId, LocationUpdateRequest request){
@@ -112,14 +128,19 @@ public class PartnerService {
         location.setLatitude(request.getLatitude());
         location.setLongitude(request.getLongitude());
 
+        log.info("Updated location {}", location);
+
         locationRepository.save(location);
     }
 
     public List<DeliveryResponse> availableRequests(Long partnerId) {
         // Check if the partner exists
-        if (!deliveryPartnerRepository.findById(partnerId).isPresent())
+        if (!deliveryPartnerRepository.findById(partnerId).isPresent()){
+            log.info("No delivery partner available");
             throw new RuntimeException("Partner doesn't exist");
+        }
 
+        log.info("Fetch all delivery requests");
         // Get the current location of the partner
         PartnerLocation currLocation = locationRepository.findByPartnerId(partnerId)
                 .orElseThrow(() -> new RuntimeException("Please update your location."));
@@ -170,9 +191,13 @@ public class PartnerService {
     public void acceptDelivery(Long partenerId, Long deliveryId){
         DeliveryRequest delivery = deliveryRequestRepository.findById(deliveryId)
                 .orElseThrow(()-> new RuntimeException("Delivery not found."));
+        if ((delivery == null))
+            log.warn("Delivery not found");
 
-        if(delivery.getStatus() != DeliveryStatus.PENDING)
+        if(delivery.getStatus() != DeliveryStatus.PENDING){
+            log.warn("Delivery already accepted or completed");
             throw new RuntimeException("Delivery already accepted or completed");
+        }
 
         User partner = userRepository.findById(partenerId)
                 .orElseThrow(() -> new RuntimeException("Delivery partner doesn't exists"));
@@ -180,6 +205,7 @@ public class PartnerService {
         delivery.setStatus(DeliveryStatus.ASSIGNED);
         delivery.setDeliveryPartner(partner);
 
+        log.info("Delivery request accepted successfully");
         deliveryRequestRepository.save(delivery);
     }
 
@@ -199,16 +225,19 @@ public class PartnerService {
 
         // Update the partner availability status:
         partner.setAvailabilityStatus(DeliveryPartner.AvailabilityStatus.ON_DELIVERY);
-        deliveryPartnerRepository.save(partner);
 
+        log.info("Delivery request assigned successfully");
+        deliveryPartnerRepository.save(partner);
     }
 
     public void completeDelivery(Long deliveryId){
         DeliveryRequest delivery = deliveryRequestRepository.findById(deliveryId)
                 .orElseThrow(() -> new RuntimeException("Delivery order doesn't exists"));
 
-        if(delivery.getStatus() == DeliveryStatus.DELIVERED)
+        if(delivery.getStatus() == DeliveryStatus.DELIVERED){
+            log.warn("Package already delivered");
             throw new RuntimeException("Package Already delivered");
+        }
 
         Long partnerId = delivery.getDeliveryPartner().getId();
 
@@ -223,6 +252,7 @@ public class PartnerService {
         partner.setAvailabilityStatus(DeliveryPartner.AvailabilityStatus.AVIALABLE);
         deliveryPartnerRepository.save(partner);
 
+        log.info("Delivery completed successfully");
     }
 
 }
