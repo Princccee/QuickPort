@@ -50,5 +50,4 @@ public class DeliveryOrderUtils {
                 .collect(Collectors.toList());
     }
 
-
 }
