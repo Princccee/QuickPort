@@ -7,11 +7,18 @@ import com.quickport.deliveryapp.repository.DeliveryRequestRepository;
 import com.quickport.deliveryapp.repository.PaymentRepository;
 import com.razorpay.Order;
 import com.quickport.deliveryapp.service.PaymentService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/payments")
+@Slf4j
 public class PaymentController {
 
     @Autowired
@@ -24,13 +31,23 @@ public class PaymentController {
     private PaymentRepository paymentRepository;
 
     @PostMapping("/create-order")
-    public Order createOrder(@RequestParam int amount, @RequestParam String receipt) {
+    public ResponseEntity<Map<String, Object>> createOrder(@RequestParam int amount, @RequestParam String receipt) {
         try {
+            log.info("Payment order initiated");
             Order order = paymentService.createOrder(amount, "INR", receipt);
-            return order; // send to frontend
-        }
-        catch (Exception e) {
-            return null;
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", order.get("id"));
+            response.put("amount", order.get("amount"));
+            response.put("currency", order.get("currency"));
+            response.put("receipt", order.get("receipt"));
+            response.put("status", order.get("status"));
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error creating order", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 
