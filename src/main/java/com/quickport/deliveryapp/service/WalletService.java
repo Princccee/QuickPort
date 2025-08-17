@@ -40,4 +40,11 @@ public class WalletService {
 
         return walletRepository.save(wallet);
     }
+
+    public Double checkWalletBalance(Long walletId){
+        Wallet wallet = walletRepository.findById(walletId)
+                .orElseThrow(()-> new RuntimeException("Wallet is not registered yet"));
+
+        return wallet.getTotalEarning();
+    }
 }

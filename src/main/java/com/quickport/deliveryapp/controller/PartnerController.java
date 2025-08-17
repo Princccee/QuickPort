@@ -82,4 +82,10 @@ public class PartnerController {
         Wallet wallet = walletService.registerWallet(request);
         return ResponseEntity.ok(wallet);
     }
+
+    @GetMapping("/{walletId}/checkBalance")
+    public ResponseEntity<?> checkBalance(@PathVariable Long walletId){
+        Double currBalance = walletService.checkWalletBalance(walletId);
+        return ResponseEntity.ok(currBalance);
+    }
 }
