@@ -2,13 +2,14 @@ package com.quickport.deliveryapp.service;
 
 import com.quickport.deliveryapp.dto.AddressDTO;
 import com.quickport.deliveryapp.dto.LoginResponse;
+import com.quickport.deliveryapp.dto.Rate_Revie_Request;
 import com.quickport.deliveryapp.dto.SignupRequest;
-import com.quickport.deliveryapp.entity.Address;
+import com.quickport.deliveryapp.entity.*;
 //import com.quickport.deliveryapp.entity.Role;
-import com.quickport.deliveryapp.entity.Roles;
-import com.quickport.deliveryapp.entity.User;
 import com.quickport.deliveryapp.repository.AddressRepository;
 //import com.quickport.deliveryapp.repository.RoleRepository;
+import com.quickport.deliveryapp.repository.DeliveryRequestRepository;
+import com.quickport.deliveryapp.repository.RatingReviewRepository;
 import com.quickport.deliveryapp.repository.UserRepository;
 import com.quickport.deliveryapp.security.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 
 @Service
@@ -29,6 +31,8 @@ public class UserService {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private JwtUtil jwtUtil;
     @Autowired private GeoLocationService geoLocationService;
+    @Autowired private DeliveryRequestRepository deliveryRequestRepository;
+    @Autowired private RatingReviewRepository ratingReviewRepository;
 
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
@@ -98,6 +102,30 @@ public class UserService {
 
         log.info("Address added : {} ", address);
         return addressRepository.save(address);
+    }
+
+    public RatingReview rate_review_ride (Rate_Revie_Request request){
+
+        // search the delivery request
+        DeliveryRequest deliveryRequest = deliveryRequestRepository.findById(request.getDeliveryId())
+                .orElseThrow(()-> new RuntimeException("Delivery request doesn't exists"));
+
+        // search the customer who has raised the above delivery request
+        User customer = userRepository.findById(deliveryRequest.getCustomer().getId())
+                .orElseThrow(()-> new RuntimeException("Delivery doesn't belong to the current user"));
+
+        if(deliveryRequest.getStatus() != DeliveryStatus.DELIVERED)
+            throw new RuntimeException("Delivery not yet completed");
+
+        // Create a new RatingReview entity:
+        RatingReview ratingReview = RatingReview.builder()
+                .rating(request.getRate())
+                .review(request.getReview())
+                .delivery(deliveryRequest)
+                .partner(deliveryRequest.getDeliveryPartner())
+                .build();
+
+        return ratingReviewRepository.save(ratingReview);
     }
 
 }
