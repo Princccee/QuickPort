@@ -45,7 +45,7 @@ public class DeliveryRequest {
 
     @ManyToOne
     @JoinColumn(name = "assigned_partner_id")
-    private User deliveryPartner;
+    private DeliveryPartner deliveryPartner;
 
     @PrePersist
     public void prePersist() {

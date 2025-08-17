@@ -22,24 +22,14 @@ public class PartnerService {
     @Autowired
     VehicleRepository vehicleRepository;
 
-//    @Autowired
-////    LocationRepository locationRepository;
-
     @Autowired
     GeoLocationService geoLocationService;
 
     @Autowired private PasswordEncoder passwordEncoder;
-//    @Autowired private RoleRepository roleRepository;
-//    @Autowired private LocationRepository locationRepository;
     @Autowired private DeliveryRequestRepository deliveryRequestRepository;
     @Autowired private JwtUtil jwtUtil;
-//    @Autowired private PasswordEncoder passwordEncoder;
 
     public PartnerRegResponse registerPartner(PartnerRegistrationRequest request){
-//        if(userRepository.existsByEmail(request.getEmail())){
-//            log.warn("Partner with this email already exist");
-//            throw new RuntimeException("Partner with this email already exists");
-//        }
 
         // Search in the partner's table if the user already exists or not
         if(deliveryPartnerRepository.existsByEmail(request.getEmail())){
@@ -47,33 +37,12 @@ public class PartnerService {
             throw new RuntimeException("Partner already exists");
         }
 
-
-//        //Create a user with the given name and email:
-//        User user = User.builder()
-//                .fullName(request.getName())
-//                .email(request.getEmail())
-//                .phone(request.getPhone())
-//                .password(passwordEncoder.encode(request.getPassword()))
-//                .isVerified(false)
-//                .role(Roles.PARTNER)
-//                .build();
-
-//        log.info("Driver created : {}", user);
-
-        // Save the user
-//        userRepository.save(user);
-
         // Create a vehicle entity that the partner holds
         Vehicle vehicle = Vehicle.builder()
                 .type(request.getVehicleType())
                 .registrationNumber(request.getVehicleRegNumber())
                 .maxWeight(request.getMaxWeight())
                 .build();
-
-//        log.info("Partner vehicle registration: {}", vehicle);
-
-        // Save the vehicle entity
-//        vehicleRepository.save(vehicle);
 
         // Create a delivery partner
         DeliveryPartner partner = DeliveryPartner.builder()
@@ -132,19 +101,7 @@ public class PartnerService {
         partner.setLatitude(request.getLatitude());
         partner.setLongitude(request.getLongitude());
 
-//        // get the current location of the delivery guy
-//        PartnerLocation location = locationRepository.findByPartnerId(partnerId)
-//                .orElse(new PartnerLocation());
-//
-//        location.setPartner(partner);
-//
-//        // Update the location coordinates
-//        location.setLatitude(request.getLatitude());
-//        location.setLongitude(request.getLongitude());
-//
-//        log.info("Updated location {}", location);
-//
-//        locationRepository.save(location);
+        deliveryPartnerRepository.save(partner); // save the updated location
     }
 
     public List<DeliveryResponse> availableRequests(Long partnerId) {
@@ -157,9 +114,8 @@ public class PartnerService {
         log.info("Fetch all delivery requests");
         // Get the current location of a delivery partner
         Optional<DeliveryPartner> partnerOpt = deliveryPartnerRepository.findById(partnerId);
-        if (partnerOpt.isEmpty()) {
+        if (partnerOpt.isEmpty())
             throw new RuntimeException("Partner not found.");
-        }
 
         DeliveryPartner partner = partnerOpt.get();
 
@@ -221,8 +177,11 @@ public class PartnerService {
             throw new RuntimeException("Delivery already accepted or completed");
         }
 
-        User partner = userRepository.findById(partenerId)
-                .orElseThrow(() -> new RuntimeException("Delivery partner doesn't exists"));
+//        User partner = userRepository.findById(partenerId)
+//                .orElseThrow(() -> new RuntimeException("Delivery partner doesn't exists"));
+
+        DeliveryPartner partner = deliveryPartnerRepository.findById(partenerId)
+                    .orElseThrow(() -> new RuntimeException("Delivery partner doesn't exists"));
 
         delivery.setStatus(DeliveryStatus.ASSIGNED);
         delivery.setDeliveryPartner(partner);
