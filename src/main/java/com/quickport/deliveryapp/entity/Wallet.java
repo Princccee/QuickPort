@@ -16,11 +16,21 @@ public class Wallet {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Double balance;
-
     private Double totalEarning;
 
-    // Each wallet will belong to one of the delivery partner
+    @Column(name = "bank", nullable = false)
+    private String bank;
+
+    @Column(name = "ifsc", nullable = false)
+    private String ifsc;
+
+    @Column(name = "account_number", unique = true, nullable = false)
+    private String accountNumber;
+
+    @Column(name = "account_holder_name")
+    private String accountHolderName;
+
+    // Each wallet belongs to one delivery partner
     @OneToOne
     @JoinColumn(name = "partner_id", nullable = false, unique = true)
     private DeliveryPartner partner;

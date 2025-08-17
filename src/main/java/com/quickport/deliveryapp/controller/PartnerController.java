@@ -3,9 +3,12 @@ package com.quickport.deliveryapp.controller;
 import com.quickport.deliveryapp.dto.*;
 import com.quickport.deliveryapp.entity.DeliveryRequest;
 import com.quickport.deliveryapp.entity.DeliveryStatus;
+import com.quickport.deliveryapp.entity.Wallet;
 import com.quickport.deliveryapp.repository.DeliveryRequestRepository;
+import com.quickport.deliveryapp.repository.WalletRepository;
 import com.quickport.deliveryapp.service.DeliveryRequestService;
 import com.quickport.deliveryapp.service.PartnerService;
+import com.quickport.deliveryapp.service.WalletService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +23,8 @@ public class PartnerController {
 
     @Autowired PartnerService partnerService;
     @Autowired DeliveryRequestRepository deliveryRequestRepository;
+    @Autowired
+    WalletService walletService;
 
     // Register the delivery partner
     @PostMapping("/register")
@@ -69,5 +74,12 @@ public class PartnerController {
     public ResponseEntity<?> completeDelivery(@PathVariable Long deliveryId){
         partnerService.completeDelivery(deliveryId);
         return ResponseEntity.ok("Delivery marked as completed");
+    }
+
+    @PostMapping("/register-wallet")
+    public ResponseEntity<?> addWallet(@RequestBody WalletRegister request){
+//        System.out.println("Raw JSON: " + request);
+        Wallet wallet = walletService.registerWallet(request);
+        return ResponseEntity.ok(wallet);
     }
 }

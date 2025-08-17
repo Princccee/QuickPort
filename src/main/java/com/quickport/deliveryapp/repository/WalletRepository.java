@@ -5,4 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface WalletRepository extends JpaRepository<Wallet, Long> {
     Wallet findByPartnerId(Long partnerId);
+    boolean existsByPartnerId(Long id);
 }
