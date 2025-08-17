@@ -4,11 +4,11 @@ import com.quickport.deliveryapp.dto.AddressDTO;
 import com.quickport.deliveryapp.dto.LoginResponse;
 import com.quickport.deliveryapp.dto.SignupRequest;
 import com.quickport.deliveryapp.entity.Address;
-import com.quickport.deliveryapp.entity.Role;
+//import com.quickport.deliveryapp.entity.Role;
 import com.quickport.deliveryapp.entity.Roles;
 import com.quickport.deliveryapp.entity.User;
 import com.quickport.deliveryapp.repository.AddressRepository;
-import com.quickport.deliveryapp.repository.RoleRepository;
+//import com.quickport.deliveryapp.repository.RoleRepository;
 import com.quickport.deliveryapp.repository.UserRepository;
 import com.quickport.deliveryapp.security.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ import java.util.Collections;
 public class UserService {
 
     @Autowired private UserRepository userRepository;
-    @Autowired private RoleRepository roleRepository;
+//    @Autowired private RoleRepository roleRepository;
     @Autowired private AddressRepository addressRepository;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private JwtUtil jwtUtil;
@@ -47,7 +47,6 @@ public class UserService {
                 .phone(request.getPhone()) // user's phone number
                 .password(passwordEncoder.encode(request.getPassword())) // encode the user's password
                 .role(Roles.CUSTOMER) // role as : CUSTOMER
-                .isVerified(false)
                 .build();
 
         log.info("User successfully registered");

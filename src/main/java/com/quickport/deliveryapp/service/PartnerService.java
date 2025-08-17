@@ -4,6 +4,7 @@ import com.quickport.deliveryapp.dto.*;
 import com.quickport.deliveryapp.entity.*;
 import com.quickport.deliveryapp.repository.*;
 import com.quickport.deliveryapp.security.JwtUtil;
+import jakarta.servlet.http.Part;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,34 +22,41 @@ public class PartnerService {
     @Autowired
     VehicleRepository vehicleRepository;
 
-    @Autowired
-    LocationRepository locationRepository;
+//    @Autowired
+////    LocationRepository locationRepository;
 
     @Autowired
     GeoLocationService geoLocationService;
 
     @Autowired private PasswordEncoder passwordEncoder;
-    @Autowired private RoleRepository roleRepository;
+//    @Autowired private RoleRepository roleRepository;
 //    @Autowired private LocationRepository locationRepository;
     @Autowired private DeliveryRequestRepository deliveryRequestRepository;
     @Autowired private JwtUtil jwtUtil;
+//    @Autowired private PasswordEncoder passwordEncoder;
 
     public PartnerRegResponse registerPartner(PartnerRegistrationRequest request){
-        if(userRepository.existsByEmail(request.getEmail())){
-            log.warn("Partner with this email doesn't exist");
-            throw new RuntimeException("Partner with this email already exists");
+//        if(userRepository.existsByEmail(request.getEmail())){
+//            log.warn("Partner with this email already exist");
+//            throw new RuntimeException("Partner with this email already exists");
+//        }
+
+        // Search in the partner's table if the user already exists or not
+        if(deliveryPartnerRepository.existsByEmail(request.getEmail())){
+            log.warn("Partner already exists, please login");
+            throw new RuntimeException("Partner already exists");
         }
 
 
-        //Create a user with the given name and email:
-        User user = User.builder()
-                .fullName(request.getName())
-                .email(request.getEmail())
-                .phone(request.getPhone())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .isVerified(false)
-                .role(Roles.PARTNER)
-                .build();
+//        //Create a user with the given name and email:
+//        User user = User.builder()
+//                .fullName(request.getName())
+//                .email(request.getEmail())
+//                .phone(request.getPhone())
+//                .password(passwordEncoder.encode(request.getPassword()))
+//                .isVerified(false)
+//                .role(Roles.PARTNER)
+//                .build();
 
 //        log.info("Driver created : {}", user);
 
@@ -69,11 +77,13 @@ public class PartnerService {
 
         // Create a delivery partner
         DeliveryPartner partner = DeliveryPartner.builder()
-                .user(user)
+                .fullName(request.getName())
+                .email(request.getEmail())
+                .phone(request.getPhone())
+                .password(passwordEncoder.encode(request.getPassword()))
                 .licenceNumber(request.getLicenseNumber())
                 .aadhaarNumber(request.getAadharNumber())
                 .availabilityStatus(DeliveryPartner.AvailabilityStatus.AVIALABLE)
-                .isVerified(false)
                 .vehicle(vehicle)
                 .build();
 
@@ -84,9 +94,9 @@ public class PartnerService {
 
         //Create the API response:
         return PartnerRegResponse.builder()
-                .name(user.getFullName())
-                .email(user.getEmail())
-                .phone(user.getPhone())
+                .name(partner.getFullName())
+                .email(partner.getEmail())
+                .phone(partner.getPhone())
                 .licenceNumber(partner.getLicenceNumber())
                 .aadharNumber(partner.getAadhaarNumber())
                 .vehicleRegNumber(vehicle.getRegistrationNumber())
@@ -94,14 +104,15 @@ public class PartnerService {
     }
 
     public PartnerLoginResponse login(PartnerLoginRequest request){
-        // Authenticate the user
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User doesn't exist"));
-        if(user == null)
-            log.warn("Partner doesn't exists");
+        if(!deliveryPartnerRepository.existsByEmail(request.getEmail())){
+            log.warn("Partner doesn't exists, please register");
+            throw new RuntimeException("Partner doesn't exists");
+        }
 
-        // verify the entered password
-        if(passwordEncoder.matches(request.getPassword(), user.getPassword())){
+        DeliveryPartner partner = deliveryPartnerRepository.findByEmail(request.getEmail());
+
+        // Verify the entered password
+        if(passwordEncoder.matches(request.getPassword(), partner.getPassword())){
             log.info("Password matched, partner login successful.");
             return PartnerLoginResponse.builder()
                     .message("Login successful")
@@ -118,19 +129,22 @@ public class PartnerService {
         DeliveryPartner partner = deliveryPartnerRepository.findById(partnerId)
                 .orElseThrow(() -> new RuntimeException("Partner doesn't exist"));
 
-        // get the current location of the delivery guy
-        PartnerLocation location = locationRepository.findByPartnerId(partnerId)
-                .orElse(new PartnerLocation());
+        partner.setLatitude(request.getLatitude());
+        partner.setLongitude(request.getLongitude());
 
-        location.setPartner(partner);
-
-        // Update the location coordinates
-        location.setLatitude(request.getLatitude());
-        location.setLongitude(request.getLongitude());
-
-        log.info("Updated location {}", location);
-
-        locationRepository.save(location);
+//        // get the current location of the delivery guy
+//        PartnerLocation location = locationRepository.findByPartnerId(partnerId)
+//                .orElse(new PartnerLocation());
+//
+//        location.setPartner(partner);
+//
+//        // Update the location coordinates
+//        location.setLatitude(request.getLatitude());
+//        location.setLongitude(request.getLongitude());
+//
+//        log.info("Updated location {}", location);
+//
+//        locationRepository.save(location);
     }
 
     public List<DeliveryResponse> availableRequests(Long partnerId) {
@@ -141,9 +155,17 @@ public class PartnerService {
         }
 
         log.info("Fetch all delivery requests");
-        // Get the current location of the partner
-        PartnerLocation currLocation = locationRepository.findByPartnerId(partnerId)
-                .orElseThrow(() -> new RuntimeException("Please update your location."));
+        // Get the current location of a delivery partner
+        Optional<DeliveryPartner> partnerOpt = deliveryPartnerRepository.findById(partnerId);
+        if (partnerOpt.isEmpty()) {
+            throw new RuntimeException("Partner not found.");
+        }
+
+        DeliveryPartner partner = partnerOpt.get();
+
+        if (partner.getLatitude() == null || partner.getLongitude() == null) {
+            throw new RuntimeException("Update the partner location.");
+        }
 
         // TODO: Filter requests within 5 km using currLocation
         double RADIUS_KM = 5;
@@ -159,8 +181,8 @@ public class PartnerService {
 
                     // Agent current coordinate
                     double[] partnerLocation = new double[]{
-                            currLocation.getLatitude(),
-                            currLocation.getLongitude()
+                            partner.getLatitude(),
+                            partner.getLongitude()
                     };
 
                     // Compute the distance

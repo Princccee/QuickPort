@@ -29,7 +29,9 @@ public class User {
     @Column(unique = true, nullable = false)
     private String phone;
 
-    private Boolean isVerified;
+    private String profilePhotoURL;
+
+//    private Boolean isVerified;
 
 //    @ManyToMany(fetch = FetchType.EAGER)
 //    @JoinTable(name = "user_roles",

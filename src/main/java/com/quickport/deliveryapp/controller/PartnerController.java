@@ -3,7 +3,6 @@ package com.quickport.deliveryapp.controller;
 import com.quickport.deliveryapp.dto.*;
 import com.quickport.deliveryapp.entity.DeliveryRequest;
 import com.quickport.deliveryapp.entity.DeliveryStatus;
-import com.quickport.deliveryapp.entity.Role;
 import com.quickport.deliveryapp.repository.DeliveryRequestRepository;
 import com.quickport.deliveryapp.service.DeliveryRequestService;
 import com.quickport.deliveryapp.service.PartnerService;
@@ -26,7 +25,7 @@ public class PartnerController {
     @PostMapping("/register")
     public ResponseEntity<PartnerRegResponse> register(@RequestBody PartnerRegistrationRequest request){
         PartnerRegResponse partner =  partnerService.registerPartner(request);
-        log.info("Register deliver partner with : {}", request);
+        log.info("Register delivery partner with : {}", request);
         return ResponseEntity.ok(partner);
     }
 

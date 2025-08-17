@@ -77,11 +77,11 @@ public class DeliveryRequestService {
 
         List<DeliveryPartner> nearbyPartners = deliveryPartnerRepository.findAll().stream()
                 .filter(partner -> partner.getAvailabilityStatus() == DeliveryPartner.AvailabilityStatus.AVIALABLE)
-                .filter(partner -> partner.getLocation() != null)
+//                .filter(partner -> partner.getLocation() != null)
                 .filter(partner -> {
                     double[] destination = {
-                            partner.getLocation().getLatitude(),
-                            partner.getLocation().getLongitude()
+                            partner.getLatitude(),
+                            partner.getLongitude()
                     };
                     double distance = geoLocationService.getRealDistanceInKm(pickupCoordinate, destination);
                     return distance <= RADIUS_KM;

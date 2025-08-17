@@ -8,7 +8,9 @@ import java.util.Optional;
 
 @Repository
 public interface DeliveryPartnerRepository extends JpaRepository<DeliveryPartner, Long> {
-    Optional<DeliveryPartner> findByUserId(Long userId);
+    Optional<DeliveryPartner> findById(Long Id);
+    DeliveryPartner findByEmail(String email);
+    Boolean existsByEmail(String email);
 
 //    boolean existsByEmail(String email);
 }

@@ -2,7 +2,6 @@ package com.quickport.deliveryapp.util;
 
 import com.quickport.deliveryapp.entity.Address;
 import com.quickport.deliveryapp.entity.DeliveryPartner;
-import com.quickport.deliveryapp.entity.PartnerLocation;
 import com.quickport.deliveryapp.repository.DeliveryPartnerRepository;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,17 +36,17 @@ public class DeliveryOrderUtils {
         return baseFare + (distance * perKmRate);
     }
 
-    public List<DeliveryPartner> findNearbyPartners(Address pickupLocation, List<DeliveryPartner> allPartners) {
-        return allPartners.stream()
-                .filter(partner -> {
-                    PartnerLocation partnerLocation = partner.getLocation(); // partner's live location coordinates
-                    double distance = calculateDistance(
-                            pickupLocation.getLatitude(), pickupLocation.getLongitude(),
-                            partnerLocation.getLatitude(), partnerLocation.getLongitude()
-                    );
-                    return distance <= 5.0; // within 5 km
-                })
-                .collect(Collectors.toList());
-    }
+//    public List<DeliveryPartner> findNearbyPartners(Address pickupLocation, List<DeliveryPartner> allPartners) {
+//        return allPartners.stream()
+//                .filter(partner -> {
+//                    PartnerLocation partnerLocation = partner.getLocation(); // partner's live location coordinates
+//                    double distance = calculateDistance(
+//                            pickupLocation.getLatitude(), pickupLocation.getLongitude(),
+//                            allPartners.getLatitude(), partnerLocation.getLongitude()
+//                    );
+//                    return distance <= 5.0; // within 5 km
+//                })
+//                .collect(Collectors.toList());
+//    }
 
 }
