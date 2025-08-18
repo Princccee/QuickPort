@@ -28,6 +28,7 @@ public class PartnerService {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private DeliveryRequestRepository deliveryRequestRepository;
     @Autowired private JwtUtil jwtUtil;
+    @Autowired private MapboxService mapboxService;
 
     public PartnerRegResponse registerPartner(PartnerRegistrationRequest request){
 
@@ -129,20 +130,8 @@ public class PartnerService {
         List<DeliveryRequest> Requests = deliveryRequestRepository.findAll().stream()
                 .filter(r -> r.getStatus() == DeliveryStatus.PENDING)
                 .filter(r -> {
-                    // Package pickup coordinate
-                    double[] pickup = {
-                            r.getPickupAddress().getLatitude(),
-                            r.getPickupAddress().getLongitude()
-                    };
-
-                    // Agent current coordinate
-                    double[] partnerLocation = new double[]{
-                            partner.getLatitude(),
-                            partner.getLongitude()
-                    };
-
                     // Compute the distance
-                    double distance = geoLocationService.getRealDistanceInKm(pickup, partnerLocation);
+                    double distance = mapboxService.haversineMeters(r.getPickupAddress().getLatitude(), r.getPickupAddress().getLongitude(), partner.getLatitude(), partner.getLongitude())/1000;
                     return distance <= RADIUS_KM;
                 })
                 .toList();

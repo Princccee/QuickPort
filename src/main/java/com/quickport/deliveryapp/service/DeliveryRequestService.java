@@ -57,20 +57,8 @@ public class DeliveryRequestService {
         Address drop = addressRepository.findById(request.getDropAddressId())
                 .orElseThrow(() -> new RuntimeException("Drop address not found"));
 
-        // Get the pickup coordinates
-//        double[] pickupCoordinate = geoLocationService.getLatLongFromAddress(pickup);
-
-//        GeocodeResult pickupCoordinates = mapboxService.forwardGeocode(pickup);
-
-        // Get the drop coordinates
-//        double[] dropCoordinate = geoLocationService.getLatLongFromAddress(drop);
-
-//        GeocodeResult dropCoordinate = mapboxService.forwardGeocode(drop);
-
-
         // ------------------------------------------------------------------
         //get the distance between pickup and drop location in KMs:
-//        double totalDistance = geoLocationService.getRealDistanceInKm(pickupCoordinate, dropCoordinate);
 
         double totalDistance = mapboxService.haversineMeters(pickup.getLatitude(), pickup.getLongitude(), drop.getLatitude(), drop.getLongitude());
 
