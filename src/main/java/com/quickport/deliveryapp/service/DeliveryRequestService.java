@@ -88,7 +88,7 @@ public class DeliveryRequestService {
 
         List<DeliveryPartner> nearbyPartners = deliveryPartnerRepository.findAll().stream()
                 .filter(partner -> partner.getAvailabilityStatus() == DeliveryPartner.AvailabilityStatus.AVIALABLE)
-//                .filter(partner -> partner.getLocation() != null)
+                .filter(partner -> partner.getLatitude() != null && partner.getLongitude() != null)
                 .filter(partner -> {
                     double distance = mapboxService.haversineMeters(pickup.getLatitude(), pickup.getLongitude(), partner.getLatitude(), partner.getLongitude())/1000;
                     return distance <= RADIUS_KM;
