@@ -24,7 +24,7 @@ public class PaymentService {
     ) throws Exception {
         this.client = new RazorpayClient(keyId, keySecret);
         this.keySecret = keySecret;
-        log.info("✅ Razorpay client initialized with keyId={}", keyId);
+        log.info("Razorpay client initialized with keyId={}", keyId);
     }
 
     public Order createOrder(int amount, String currency, String receipt) throws Exception {
@@ -33,7 +33,7 @@ public class PaymentService {
         orderRequest.put("currency", currency);
         orderRequest.put("receipt", receipt);
 
-        log.info("💳 Creating payment order: {}", orderRequest);
+        log.info("Creating payment order: {}", orderRequest);
         return client.orders.create(orderRequest);
     }
 
@@ -42,7 +42,7 @@ public class PaymentService {
             String data = orderId + "|" + paymentId;
             return Utils.verifySignature(data, signature, keySecret);
         } catch (Exception e) {
-            log.error("❌ Signature verification failed", e);
+            log.error("Signature verification failed", e);
             return false;
         }
     }

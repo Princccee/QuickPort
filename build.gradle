@@ -48,6 +48,7 @@ dependencies {
 	implementation 'com.google.firebase:firebase-admin:9.2.0'
 	runtimeOnly 'org.springframework.boot:spring-boot-devtools'
 	implementation 'com.razorpay:razorpay-java:1.4.5'
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 }
 
 tasks.named('test') {

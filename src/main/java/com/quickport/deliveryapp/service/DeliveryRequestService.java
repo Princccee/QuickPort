@@ -2,6 +2,7 @@ package com.quickport.deliveryapp.service;
 
 import com.quickport.deliveryapp.dto.DeliveryRequestDTO;
 import com.quickport.deliveryapp.dto.DeliveryResponse;
+import com.quickport.deliveryapp.dto.GeocodeResult;
 import com.quickport.deliveryapp.entity.*;
 import com.quickport.deliveryapp.repository.AddressRepository;
 import com.quickport.deliveryapp.repository.DeliveryPartnerRepository;
@@ -41,6 +42,9 @@ public class DeliveryRequestService {
     @Autowired
     private FCMService fcmService;
 
+    @Autowired
+    private MapboxService mapboxService;
+
     // Create a new delivery order
     public DeliveryResponse createDeliveryRequest(DeliveryRequestDTO request, Long customerId){
 
@@ -49,19 +53,26 @@ public class DeliveryRequestService {
         Address pickup = addressRepository.findById(request.getPickupAddressId())
                 .orElseThrow(() -> new RuntimeException("Pickup address not found"));
 
-        // Get the pickup coordinates
-        double[] pickupCoordinate = geoLocationService.getLatLongFromAddress(pickup);
-
         // get the drop address
         Address drop = addressRepository.findById(request.getDropAddressId())
                 .orElseThrow(() -> new RuntimeException("Drop address not found"));
 
+        // Get the pickup coordinates
+//        double[] pickupCoordinate = geoLocationService.getLatLongFromAddress(pickup);
+
+//        GeocodeResult pickupCoordinates = mapboxService.forwardGeocode(pickup);
+
         // Get the drop coordinates
-        double[] dropCoordinate = geoLocationService.getLatLongFromAddress(drop);
+//        double[] dropCoordinate = geoLocationService.getLatLongFromAddress(drop);
+
+//        GeocodeResult dropCoordinate = mapboxService.forwardGeocode(drop);
+
 
         // ------------------------------------------------------------------
         //get the distance between pickup and drop location in KMs:
-        double totalDistance = geoLocationService.getRealDistanceInKm(pickupCoordinate, dropCoordinate);
+//        double totalDistance = geoLocationService.getRealDistanceInKm(pickupCoordinate, dropCoordinate);
+
+        double totalDistance = mapboxService.haversineMeters(pickup.getLatitude(), pickup.getLongitude(), drop.getLatitude(), drop.getLongitude());
 
         // Now compute the total delivery cost:
         double cost = orderUtils.computeDeliveryCost(totalDistance);
@@ -79,11 +90,7 @@ public class DeliveryRequestService {
                 .filter(partner -> partner.getAvailabilityStatus() == DeliveryPartner.AvailabilityStatus.AVIALABLE)
 //                .filter(partner -> partner.getLocation() != null)
                 .filter(partner -> {
-                    double[] destination = {
-                            partner.getLatitude(),
-                            partner.getLongitude()
-                    };
-                    double distance = geoLocationService.getRealDistanceInKm(pickupCoordinate, destination);
+                    double distance = mapboxService.haversineMeters(pickup.getLatitude(), pickup.getLongitude(), partner.getLatitude(), partner.getLongitude())/1000;
                     return distance <= RADIUS_KM;
                 })
                 .toList();

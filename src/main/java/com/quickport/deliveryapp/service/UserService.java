@@ -1,9 +1,6 @@
 package com.quickport.deliveryapp.service;
 
-import com.quickport.deliveryapp.dto.AddressDTO;
-import com.quickport.deliveryapp.dto.LoginResponse;
-import com.quickport.deliveryapp.dto.Rate_Revie_Request;
-import com.quickport.deliveryapp.dto.SignupRequest;
+import com.quickport.deliveryapp.dto.*;
 import com.quickport.deliveryapp.entity.*;
 //import com.quickport.deliveryapp.entity.Role;
 import com.quickport.deliveryapp.repository.AddressRepository;
@@ -33,6 +30,7 @@ public class UserService {
     @Autowired private GeoLocationService geoLocationService;
     @Autowired private DeliveryRequestRepository deliveryRequestRepository;
     @Autowired private RatingReviewRepository ratingReviewRepository;
+    @Autowired private MapboxService mapboxService;
 
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
@@ -94,11 +92,13 @@ public class UserService {
                 .postalCode(request.getPostalCode())
                 .build();
 
+        // Use geolocation service to find latitude and longitude approx to an address
 //        double[] coordinates = geoLocationService.getLatLongFromAddress(address);
+        GeocodeResult coordinates = mapboxService.forwardGeocode(address);
 
-        //Add the latitude and longitude:
-//        address.setLatitude(coordinates[0]);
-//        address.setLongitude(coordinates[1]);
+//        Add the latitude and longitude:
+        address.setLatitude(coordinates.getLatitude());
+        address.setLongitude(coordinates.getLongitude());
 
         log.info("Address added : {} ", address);
         return addressRepository.save(address);
