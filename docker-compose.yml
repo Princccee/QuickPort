@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:latest
+    container_name: mySQL_quickPort
+    restart: always
+    environment:
+      MYSQL_DATABASE: deliverydb
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: prince
+      MYSQL_PASSWORD: Bubblebash@21
+    ports:
+      - "3307:3306"   # container MySQL is accessible at localhost:3307
+    volumes:
+      - db_data:/var/lib/mysql
+
+  app:
+    build: .
+    container_name: delivery_app
+    restart: always
+    depends_on:
+      - mysql
+    environment:
+      DB_HOST: mysql       # Notice this: app will connect to service name "mysql"
+      DB_PORT: 3306
+      DB_NAME: deliverydb
+      DB_USER: deliveryuser
+      DB_PASSWORD: deliverypass
+    ports:
+      - "8080:8080"
+
+volumes:
+  db_data:
