@@ -40,3 +40,5 @@ src/main/resources/application.properties
 src/main/resources/firebase/firebase-service-account.json
 
 logs/
+
+src/main/resources/application.properties
