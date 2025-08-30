@@ -1,11 +1,30 @@
-# Step 1: Use JDK image to run Spring Boot
-FROM eclipse-temurin:17-jdk-jammy
+# ---------- Build stage ----------
+FROM gradle:8.10.1-jdk17-jammy AS builder
+WORKDIR /workspace
 
-# Step 2: Add a volume for temp files
-VOLUME /tmp
+# Cache dependencies first (speed up rebuilds)
+COPY build.gradle settings.gradle ./
+COPY gradle gradle
+COPY gradlew gradlew
+RUN chmod +x gradlew
+RUN ./gradlew dependencies || true
 
-# Step 3: Copy the JAR built from Gradle
-COPY build/libs/deliveryapp-0.0.1-SNAPSHOT.jar app.jar
+# Now copy the rest and build
+COPY . .
+RUN ./gradlew clean bootJar -x test
 
-# Step 4: Run the JAR
-ENTRYPOINT ["java","-jar","/app.jar"]
+# ---------- Runtime stage ----------
+FROM eclipse-temurin:17-jre-jammy
+WORKDIR /app
+
+# Copy the fat jar from builder
+COPY --from=builder /workspace/build/libs/*-SNAPSHOT.jar app.jar
+
+# Tunables (optional)
+ENV JAVA_OPTS=""
+
+# Expose port (documentational)
+EXPOSE 8080
+
+# Run with a little heap friendliness for containers
+ENTRYPOINT ["sh","-c","java $JAVA_OPTS -jar /app/app.jar"]

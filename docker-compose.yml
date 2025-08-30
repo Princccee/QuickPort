@@ -1,34 +1,53 @@
-version: "3.8"
+# No "version" key needed with Compose v2
+name: deliveryapp-stack
 
 services:
   mysql:
-    image: mysql:latest
-    container_name: mySQL_quickPort
-    restart: always
+    image: mysql:8.0
+    container_name: delivery_mysql
+    restart: unless-stopped
     environment:
       MYSQL_DATABASE: deliverydb
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_USER: prince
-      MYSQL_PASSWORD: Bubblebash@21
+      MYSQL_USER: deliveryuser
+      MYSQL_PASSWORD: deliverypass
     ports:
-      - "3307:3306"   # container MySQL is accessible at localhost:3307
+      - "3307:3306"   # host:container (keeps it separate from your local MySQL on 3306)
     volumes:
       - db_data:/var/lib/mysql
+    command: [
+      "--default-authentication-plugin=mysql_native_password",
+      "--character-set-server=utf8mb4",
+      "--collation-server=utf8mb4_unicode_ci"
+    ]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # If you ever hit a platform mismatch, uncomment:
+      # platform: linux/amd64
     container_name: delivery_app
-    restart: always
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     environment:
-      DB_HOST: mysql       # Notice this: app will connect to service name "mysql"
-      DB_PORT: 3306
-      DB_NAME: deliverydb
-      DB_USER: deliveryuser
-      DB_PASSWORD: deliverypass
+      SPRING_PROFILES_ACTIVE: docker
+      # Add any API keys if your app needs them at startup:
+#       MAPBOX_TOKEN: pk.eyJ1IjoicHJpbmNjZWUiLCJhIjoiY21laDRxNncxMDQwbTJsc2I1ajdjZGtrbSJ9.o5ta3KMaYbmGwZ8LjDAJww
+#       RAZORPAY_KEY_ID: rzp_test_R5gX1mDzVZinAS
+#       RAZORPAY_KEY_SECRET: xWOvBeWjG5J9zEGUp8qGSxhw
     ports:
       - "8080:8080"
+    restart: unless-stopped
+    # Optional: mount logs if you want host files
+    # volumes:
+    #   - ./logs:/app/logs
 
 volumes:
   db_data:

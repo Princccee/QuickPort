@@ -139,8 +139,10 @@ public class PartnerService {
         List<DeliveryResponse> availableRequests = new ArrayList<>();
         for(DeliveryRequest d : Requests){
             DeliveryResponse response = DeliveryResponse.builder()
+                    .deliveryId(d.getId())
                     .packageDescription(d.getPackageDescription())
                     .fare(d.getFare())
+                    .status(String.valueOf(d.getStatus()))
                     .pickupTime(d.getPickupTime())
                     .pickupStreet(d.getPickupAddress().getStreet())
                     .pickupCity(d.getPickupAddress().getCity())
